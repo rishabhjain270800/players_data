@@ -1,0 +1,96 @@
+# Architecture — LILA BLACK Map Viewer
+
+## What I Built
+A browser-based player journey visualization tool that lets Level Designers explore 5 days of production gameplay data from LILA BLACK across 3 maps. Live at: https://players-data-rishabhjain.streamlit.app/
+
+---
+
+## Tech Stack & Why
+
+| Layer | Tool | Reason |
+|---|---|---|
+| Frontend + Backend | Streamlit | Single Python file deploys as a full web app — no separate frontend needed |
+| Charts & Map | Plotly (`go.Image` + `Scattergl`) | `go.Image` renders the minimap as a native trace; `Scattergl` handles 20k+ points smoothly via WebGL |
+| Data processing | Pandas | Fast filtering, grouping, and coordinate math on 89k rows |
+| Image handling | Pillow + NumPy | Converts minimap PNGs to RGBA arrays for Plotly rendering |
+| Hosting | Streamlit Community Cloud | Free, deploys directly from GitHub in minutes |
+
+---
+
+## Data Flow
+
+```
+Parquet files (1,243 files across 5 days)
+        ↓
+Python script (parquet_to_excel_csv.py)
+  - Reads all parquet files using pyarrow
+  - Decodes event column from bytes → string
+  - Detects human vs bot from user_id (UUID = human, numeric = bot)
+  - Concatenates into one DataFrame
+        ↓
+all_events.csv (single flat file, ~13MB)
+        ↓
+Streamlit app (app.py)
+  - Loads CSV on startup
+  - Applies sidebar filters (map, date, match)
+  - Converts world coordinates → pixel coordinates
+  - Renders minimap image + event dots/heatmaps via Plotly
+        ↓
+Browser (Level Designer sees the map)
+```
+
+---
+
+## Coordinate Mapping Approach
+
+The game uses a 3D world coordinate system `(x, y, z)` where `y` is elevation. For 2D minimap plotting, only `x` and `z` are used.
+
+Each map has a known `scale` and `origin (origin_x, origin_z)`. The conversion formula:
+
+```
+u = (x - origin_x) / scale
+v = (z - origin_z) / scale
+
+pixel_x = u * 1024
+pixel_y = (1 - v) * 1024     ← Y is flipped (image origin is top-left)
+```
+
+| Map | Scale | Origin X | Origin Z |
+|---|---|---|---|
+| AmbroseValley | 900 | -370 | -473 |
+| GrandRift | 581 | -290 | -290 |
+| Lockdown | 1000 | -500 | -500 |
+
+The Y-flip was the key insight — without it, all points appear upside-down on the minimap.
+
+---
+
+## Assumptions Made
+
+| Situation | Assumption |
+|---|---|
+| `ts` column stores match-relative time, not wall-clock | Treated as milliseconds since epoch for ordering; date filter works on the parsed date |
+| Bot detection | UUID format = human, short numeric ID = bot (as per README) |
+| February 14 partial day | Included as-is; noted in README |
+| Events outside map bounds | Clipped to 0–1024 pixel range and excluded |
+
+---
+
+## Trade-offs
+
+| Decision | Chose | Considered | Why |
+|---|---|---|---|
+| Data format | Pre-process to CSV | Query parquet live | CSV loads instantly in browser; parquet adds complexity |
+| Rendering | Plotly Scattergl | Leaflet.js + React | Streamlit-native, no separate frontend needed |
+| Image rendering | `go.Image` trace | `add_layout_image` | Layout images failed silently in some Plotly versions |
+| Hosting | Streamlit Cloud | Vercel + FastAPI | Single-service deployment, no backend needed |
+
+---
+
+## What I'd Do With More Time
+
+- Add a **timeline/playback slider** to watch a match unfold second by second
+- Add **player path lines** connecting position events for individual players
+- Add a **match summary panel** showing kill counts, survival time per player
+- Pre-aggregate heatmap data server-side for faster rendering on large date ranges
+- Add **GeoJSON-style zone overlays** for storm boundaries per timestamp
