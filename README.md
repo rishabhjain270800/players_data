@@ -11,7 +11,8 @@ A browser-based tool for Level Designers to explore player behaviour across LILA
 - Displays player events (kills, deaths, loot, storm deaths) as dots on the actual game minimap
 - Distinguishes human players from bots visually
 - Supports filtering by map, date range, and match ID
-- Heatmap mode shows kill zones, death zones, and high-traffic areas
+- Features a unified tab interface to seamlessly switch between Event Overviews and specialized Heatmaps (Kill Zones, Death Zones, High Traffic)
+- Dynamic Live Map legend automatically updates based on the active heatmap view
 - Works directly in the browser — no installation needed
 
 ---

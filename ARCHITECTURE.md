@@ -83,6 +83,8 @@ The Y-flip was the key insight — without it, all points appear upside-down on 
 | Data format | Pre-process to CSV | Query parquet live | CSV loads instantly in browser; parquet adds complexity |
 | Rendering | Plotly Scattergl | Leaflet.js + React | Streamlit-native, no separate frontend needed |
 | Image rendering | `go.Image` trace | `add_layout_image` | Layout images failed silently in some Plotly versions |
+| Heatmaps | `go.Histogram2d` | `Densitymapbox` | Can be directly overlaid on `go.Image` with `zsmooth="best"` and custom colorscale for highly prominent density maps |
+| UI Layout | Native `st.tabs` | Custom HTML & CSS | Provides robust, clickable navigation headers that natively trigger Python reruns without CSS hacks |
 | Hosting | Streamlit Cloud | Vercel + FastAPI | Single-service deployment, no backend needed |
 
 ---
