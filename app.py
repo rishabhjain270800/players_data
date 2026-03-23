@@ -47,6 +47,7 @@ def inject_css():
     /* Hide default Streamlit elements */
     #MainMenu, footer { visibility: hidden; }
     header { background: transparent !important; }
+    [data-testid="stToolbar"] { visibility: hidden !important; }
     .block-container {
         padding: 0 !important;
         max-width: 100% !important;
