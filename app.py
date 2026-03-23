@@ -487,7 +487,7 @@ def fmt_s(s):
 # ── Figure ────────────────────────────────────────────────────────────────────
 
 def build_figure(df_map, map_name, *, mode, show_kills, show_deaths,
-                 show_loot, show_storm, player_filter):
+                 show_loot, show_storm, player_filter, track_player="None"):
 
     fig = go.Figure()
     img = _load_map_image(map_name)
@@ -571,15 +571,42 @@ def build_figure(df_map, map_name, *, mode, show_kills, show_deaths,
                 ("Player", df_e["is_human"],  "circle",  sz_human),
                 ("Bot",   ~df_e["is_human"],  "diamond", sz_bot),
             ]:
-                df_g = df_e[mask]
+                df_g = df_e[mask].copy()
                 if df_g.empty: continue
+                
+                custom_data = np.stack((
+                    df_g["match_id"].astype(str).str[:8], 
+                    df_g["user_id"].astype(str).str[:8], 
+                    df_g["ts_dt"].dt.strftime("%H:%M:%S")
+                ), axis=-1)
+                
                 fig.add_trace(go.Scattergl(
                     x=df_g["pixel_x"], y=df_g["pixel_y"],
                     mode="markers",
                     marker=dict(size=sz, color=color, symbol=sym, opacity=0.85 if label != "Storm Death" else 1.0, line=line_dict),
                     name=f"{label} ({grp})",
-                    hovertemplate=f"<b>{label}</b> ({grp})<br>Match: %{{customdata}}<extra></extra>",
-                    customdata=df_g["match_id"].values,
+                    hovertemplate=f"<b>{label}</b> ({grp})<br>Time: %{{customdata[2]}}<br>Player: %{{customdata[1]}}<br>Match: %{{customdata[0]}}...<extra></extra>",
+                    customdata=custom_data,
+                ))
+
+        # Add player path
+        if track_player != "None":
+            df_p = df_map[(df_map["user_id"] == track_player) & (df_map["event"].isin({"Position", "BotPosition"}))].copy()
+            if not df_p.empty:
+                df_p = df_p.sort_values("ts_dt")
+                custom_data_p = np.stack((
+                    df_p["match_id"].astype(str).str[:8], 
+                    df_p["user_id"].astype(str).str[:8], 
+                    df_p["ts_dt"].dt.strftime("%H:%M:%S")
+                ), axis=-1)
+                
+                fig.add_trace(go.Scattergl(
+                    x=df_p["pixel_x"], y=df_p["pixel_y"], mode="lines+markers",
+                    line=dict(color="#00FFFF", width=2, dash="dot"),
+                    marker=dict(size=4, color="#00FFFF", opacity=0.8),
+                    name="Player Path", showlegend=False,
+                    hovertemplate="<b>Path Node</b><br>Time: %{customdata[2]}<br>Player: %{customdata[1]}<br>Match: %{customdata[0]}...<extra></extra>",
+                    customdata=custom_data_p
                 ))
     return fig
 
@@ -690,6 +717,13 @@ def main():
         if sel_mid:
             df_map = df_map[df_map["match_id"] == sel_mid]
 
+        track_player = "None"
+        if sel_mid:
+            st.markdown('<div class="sb-label">Track Specific Player</div>', unsafe_allow_html=True)
+            players_in_match = df_map["user_id"].dropna().unique().tolist()
+            tracker_opts = ["None"] + sorted([str(p) for p in players_in_match])
+            track_player = st.selectbox("track", tracker_opts, label_visibility="collapsed")
+
 
 
         # Show Events
@@ -749,6 +783,16 @@ def main():
     
     for i, t in enumerate(tab_opts):
         with st_tabs[i]:
+            # Add contextual descriptions for UI Designers
+            if t == "Events Overview":
+                st.markdown('<p style="color:#8B8FA8;font-size:0.8rem;margin-bottom:12px;">Displays discrete combat, looting, and survival events geographically. Hover over points for exact tracking. <i>Hint: Filter by Match ID to unlock Player Path tracking.</i></p>', unsafe_allow_html=True)
+            elif t == "Kill Zones":
+                st.markdown('<p style="color:#8B8FA8;font-size:0.8rem;margin-bottom:12px;">Density heatmap aggregating successful eliminations. Identifies structural vantage points, dominant combat arenas, and heavily contested map geometry.</p>', unsafe_allow_html=True)
+            elif t == "Death Zones":
+                st.markdown('<p style="color:#8B8FA8;font-size:0.8rem;margin-bottom:12px;">Density heatmap aggregating all fatality locations. Flags potential structural ambush corridors, unbalanced chokepoints, and high-risk traversals.</p>', unsafe_allow_html=True)
+            elif t == "High Traffic":
+                st.markdown('<p style="color:#8B8FA8;font-size:0.8rem;margin-bottom:12px;">Composite density visualization aggregating all mapped game events. Exposes the absolute primary arteries of player flow and match pacing.</p>', unsafe_allow_html=True)
+
             # Determine logic mode corresponding to this tab
             render_mode = "scatter" if t == "Events Overview" else t
             
@@ -763,7 +807,7 @@ def main():
             fig = build_figure(df_px, map_name, mode=render_mode,
                                show_kills=show_kills, show_deaths=show_deaths,
                                show_loot=show_loot, show_storm=show_storm,
-                               player_filter=p_filter)
+                               player_filter=p_filter, track_player=track_player)
                                
             # Render layout
             map_col, leg_col = st.columns([10, 1])
