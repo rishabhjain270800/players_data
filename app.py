@@ -45,7 +45,8 @@ def inject_css():
     }
 
     /* Hide default Streamlit elements */
-    #MainMenu, footer, header { visibility: hidden; }
+    #MainMenu, footer { visibility: hidden; }
+    header { background: transparent !important; }
     .block-container {
         padding: 0 !important;
         max-width: 100% !important;
