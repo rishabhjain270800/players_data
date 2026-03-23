@@ -816,13 +816,13 @@ def main():
                 st.markdown(f'<h3 style="color:#FFFFFF;margin-top:20px;font-size:1.1rem;letter-spacing:0.05em;border-bottom:1px solid #1E2235;padding-bottom:10px;">{t.upper()}</h3>', unsafe_allow_html=True)
                 
                 if t == "Events Overview":
-                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">Displays discrete combat, looting, and survival events geographically. Hover over points for exact tracking.<br><br><i>Hint: Filter by Match ID to unlock Player Path tracking.</i></p>', unsafe_allow_html=True)
+                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">See exactly where players fought, looted, and died on the map. Hover over any dot for details.<br><br><i>Hint: Select a specific Match Filter to track individual player paths.</i></p>', unsafe_allow_html=True)
                 elif t == "Kill Zones":
-                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">Density heatmap aggregating successful eliminations. Identifies structural vantage points, dominant combat arenas, and heavily contested map geometry.</p>', unsafe_allow_html=True)
+                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">A glowing heatmap showing where the most kills happened. Bright red areas highlight the best spots for setting up ambushes and dominating fights.</p>', unsafe_allow_html=True)
                 elif t == "Death Zones":
-                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">Density heatmap aggregating all fatality locations. Flags potential structural ambush corridors, unbalanced chokepoints, and high-risk traversals.</p>', unsafe_allow_html=True)
+                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">A glowing heatmap showing where the most players died. Bright areas highlight dangerous chokepoints and risky areas of the map.</p>', unsafe_allow_html=True)
                 elif t == "High Traffic":
-                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">Composite density visualization aggregating all mapped game events. Exposes the absolute primary arteries of player flow and match pacing.</p>', unsafe_allow_html=True)
+                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">A glowing heatmap showing all player activity combined. Bright areas show the most popular paths and busiest locations in the game.</p>', unsafe_allow_html=True)
 
                 # Floating legend (now cleanly embedded underneath description)
                 active_events = []
