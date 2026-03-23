@@ -781,6 +781,22 @@ def main():
     
     for i, t in enumerate(tab_opts):
         with st_tabs[i]:
+            # Determine logic mode corresponding to this tab
+            render_mode = "scatter" if t == "Events Overview" else t
+            
+            # Fetch data for this map
+            cfg   = MAP_CONFIGS[map_name]
+            df_px = _to_pixels(df_map, scale=cfg["scale"],
+                               origin_x=cfg["origin_x"], origin_z=cfg["origin_z"])
+            df_px = df_px[df_px["pixel_x"].between(0, IMG_SIZE) &
+                          df_px["pixel_y"].between(0, IMG_SIZE)]
+            
+            # Build the figure independently for the active tab
+            fig = build_figure(df_px, map_name, mode=render_mode,
+                               show_kills=show_kills, show_deaths=show_deaths,
+                               show_loot=show_loot, show_storm=show_storm,
+                               player_filter=p_filter, track_player=track_player)
+
             # Render layout: 75% Map, 25% Descriptions/Legend
             map_col, desc_col = st.columns([7.5, 2.5])
             
