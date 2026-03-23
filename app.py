@@ -808,7 +808,8 @@ def main():
             map_col, desc_col = st.columns([7.5, 2.5])
             
             with map_col:
-                st.plotly_chart(fig, use_container_width=True, key=f"plot_{t}_{map_name}")
+                hash_key = f"{show_kills}_{show_deaths}_{show_loot}_{show_storm}_{track_player}_{p_filter}"
+                st.plotly_chart(fig, use_container_width=True, key=f"plot_{t}_{map_name}_{hash_key}")
             
             with desc_col:
                 # Contextual Description
