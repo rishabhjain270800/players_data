@@ -8,6 +8,7 @@ A browser-based tool for Level Designers to explore player behaviour across LILA
 
 ## What It Does
 
+- **Requires explicit data upload (CSV or Excel)** to initialize the Map Intelligence dashboard
 - Displays player events (kills, deaths, loot, storm deaths) as dots on the actual game minimap
 - Distinguishes human players from bots visually
 - Supports filtering by map, date range, and match ID

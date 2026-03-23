@@ -647,7 +647,7 @@ def main():
         """, unsafe_allow_html=True)
 
         st.markdown('<div class="sb-label">📂 Data Source</div>', unsafe_allow_html=True)
-        uploaded = st.file_uploader("", type=["csv", "xlsx"], label_visibility="collapsed")
+        uploaded = st.file_uploader("Upload Data", type=["csv", "xlsx"], label_visibility="collapsed")
         if uploaded:
             st.success(f"✅ {uploaded.name}")
 
@@ -703,7 +703,7 @@ def main():
         st.markdown('<div class="sb-label">Timeframe</div>', unsafe_allow_html=True)
         dates = sorted(d for d in df_map["date"].dropna().unique())
         if dates:
-            rng = st.date_input("", value=(dates[0], dates[-1]),
+            rng = st.date_input("Date Range", value=(dates[0], dates[-1]),
                                 label_visibility="collapsed")
             if isinstance(rng, tuple):
                 s = rng[0] if len(rng) > 0 else dates[0]
@@ -718,7 +718,7 @@ def main():
         m_opts   = ["All Matches"] + [f"{m[:8]}... ({pcounts.get(m,0)} players)"
                                        for m in sorted(pcounts)]
         m_ids    = [None] + sorted(pcounts)
-        sel_mlbl = st.selectbox("", m_opts, label_visibility="collapsed")
+        sel_mlbl = st.selectbox("Match Selection", m_opts, label_visibility="collapsed")
         sel_mid  = m_ids[m_opts.index(sel_mlbl)]
         if sel_mid:
             df_map = df_map[df_map["match_id"] == sel_mid]
@@ -728,7 +728,7 @@ def main():
             st.markdown('<div class="sb-label">Track Specific Player</div>', unsafe_allow_html=True)
             players_in_match = df_map["user_id"].dropna().unique().tolist()
             tracker_opts = ["None"] + sorted([str(p) for p in players_in_match])
-            track_player = st.selectbox("track", tracker_opts, label_visibility="collapsed")
+            track_player = st.selectbox("Track Player", tracker_opts, label_visibility="collapsed")
 
 
 
@@ -741,7 +741,7 @@ def main():
 
         # Player type
         st.markdown('<div class="sb-label">Player Type</div>', unsafe_allow_html=True)
-        p_filter = st.radio("", ["All Players", "Humans Only", "Bots Only"],
+        p_filter = st.radio("Player Category", ["All Players", "Humans Only", "Bots Only"],
                             label_visibility="collapsed")
 
         # Export button

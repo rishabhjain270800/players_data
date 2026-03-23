@@ -25,13 +25,16 @@ Parquet files (1,243 files across 5 days)
 Python script (parquet_to_excel_csv.py)
   - Reads all parquet files using pyarrow
   - Decodes event column from bytes → string
-  - Detects human vs bot from user_id (UUID = human, numeric = bot)
+  - Detects human vs bot from user_id
   - Concatenates into one DataFrame
         ↓
 all_events.csv (single flat file, ~13MB)
         ↓
+User (Uploads CSV or XLSX file via sidebar)
+        ↓
 Streamlit app (app.py)
-  - Loads CSV on startup
+  - Blocks render with an elegantly styled Empty State until file is provided
+  - Parses uploaded CSV/XLSX memory buffer
   - Applies sidebar filters (map, date, match)
   - Converts world coordinates → pixel coordinates
   - Renders minimap image + event dots/heatmaps via Plotly
