@@ -94,8 +94,8 @@ The Y-flip was the key insight — without it, all points appear upside-down on 
 
 ## What I'd Do With More Time
 
-- Add a **timeline/playback slider** to watch a match unfold second by second
-- Add **player path lines** connecting position events for individual players
-- Add a **match summary panel** showing kill counts, survival time per player
-- Pre-aggregate heatmap data server-side for faster rendering on large date ranges
+- **Robust Backend Database:** Migrate the data layer from a heavy memory-mapped CSV file into an active SQL backend (e.g., PostgreSQL or ClickHouse) to allow instantaneous performance scaling for millions of matches.
+- **3D Topography Elevation:** Implement true 3D map plotting where events are elevated according to their exact coordinate verticality, giving Level Designers deep structural insights.
+- **Advanced Path Clustering:** Build a machine learning clustering overlay that automatically highlights anomalous player paths to instantly catch bug abusers or map terrain exploits.
+- **Authentication & Security:** Wrap the application architecture seamlessly behind a robust OAuth wall so proprietary raw match data is fully protected from public access.
 - Add **GeoJSON-style zone overlays** for storm boundaries per timestamp
