@@ -110,8 +110,6 @@ def inject_css():
     [data-testid="stSidebar"] {
         background-color: #0D0F1A !important;
         border-right: 1px solid #1E2235 !important;
-        min-width: 220px !important;
-        max-width: 220px !important;
     }
     [data-testid="stSidebar"] > div {
         padding: 20px 16px !important;
@@ -783,60 +781,46 @@ def main():
     
     for i, t in enumerate(tab_opts):
         with st_tabs[i]:
-            # Add contextual descriptions for UI Designers
-            if t == "Events Overview":
-                st.markdown('<p style="color:#8B8FA8;font-size:0.8rem;margin-bottom:12px;">Displays discrete combat, looting, and survival events geographically. Hover over points for exact tracking. <i>Hint: Filter by Match ID to unlock Player Path tracking.</i></p>', unsafe_allow_html=True)
-            elif t == "Kill Zones":
-                st.markdown('<p style="color:#8B8FA8;font-size:0.8rem;margin-bottom:12px;">Density heatmap aggregating successful eliminations. Identifies structural vantage points, dominant combat arenas, and heavily contested map geometry.</p>', unsafe_allow_html=True)
-            elif t == "Death Zones":
-                st.markdown('<p style="color:#8B8FA8;font-size:0.8rem;margin-bottom:12px;">Density heatmap aggregating all fatality locations. Flags potential structural ambush corridors, unbalanced chokepoints, and high-risk traversals.</p>', unsafe_allow_html=True)
-            elif t == "High Traffic":
-                st.markdown('<p style="color:#8B8FA8;font-size:0.8rem;margin-bottom:12px;">Composite density visualization aggregating all mapped game events. Exposes the absolute primary arteries of player flow and match pacing.</p>', unsafe_allow_html=True)
-
-            # Determine logic mode corresponding to this tab
-            render_mode = "scatter" if t == "Events Overview" else t
+            # Render layout: 75% Map, 25% Descriptions/Legend
+            map_col, desc_col = st.columns([7.5, 2.5])
             
-            # Fetch data for this map
-            cfg   = MAP_CONFIGS[map_name]
-            df_px = _to_pixels(df_map, scale=cfg["scale"],
-                               origin_x=cfg["origin_x"], origin_z=cfg["origin_z"])
-            df_px = df_px[df_px["pixel_x"].between(0, IMG_SIZE) &
-                          df_px["pixel_y"].between(0, IMG_SIZE)]
-            
-            # Build the figure independently for the active tab
-            fig = build_figure(df_px, map_name, mode=render_mode,
-                               show_kills=show_kills, show_deaths=show_deaths,
-                               show_loot=show_loot, show_storm=show_storm,
-                               player_filter=p_filter, track_player=track_player)
-                               
-            # Render layout
-            map_col, leg_col = st.columns([10, 1])
             with map_col:
                 st.plotly_chart(fig, use_container_width=True, key=f"plot_{t}_{map_name}")
             
-            # Floating legend (dynamic HTML below map)
-            active_events = []
-            if render_mode == "scatter" or render_mode == "High Traffic":
-                if show_kills:  active_events.append(("Player Kills", "#FF3B30"))
-                if show_deaths: active_events.append(("Fatalities",   "#4A90FF"))
-                if show_loot:   active_events.append(("Elite Loot",   "#34C759"))
-                if show_storm:  active_events.append(("Storm Death",  "#FFD400"))
-            elif render_mode == "Kill Zones":
-                if show_kills:  active_events.append(("Player Kills", "#FF3B30"))
-            elif render_mode == "Death Zones":
-                if show_deaths: active_events.append(("Fatalities",   "#4A90FF"))
+            with desc_col:
+                # Contextual Description
+                st.markdown(f'<h3 style="color:#FFFFFF;margin-top:20px;font-size:1.1rem;letter-spacing:0.05em;border-bottom:1px solid #1E2235;padding-bottom:10px;">{t.upper()}</h3>', unsafe_allow_html=True)
+                
+                if t == "Events Overview":
+                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">Displays discrete combat, looting, and survival events geographically. Hover over points for exact tracking.<br><br><i>Hint: Filter by Match ID to unlock Player Path tracking.</i></p>', unsafe_allow_html=True)
+                elif t == "Kill Zones":
+                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">Density heatmap aggregating successful eliminations. Identifies structural vantage points, dominant combat arenas, and heavily contested map geometry.</p>', unsafe_allow_html=True)
+                elif t == "Death Zones":
+                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">Density heatmap aggregating all fatality locations. Flags potential structural ambush corridors, unbalanced chokepoints, and high-risk traversals.</p>', unsafe_allow_html=True)
+                elif t == "High Traffic":
+                    st.markdown('<p style="color:#8B8FA8;font-size:0.85rem;line-height:1.6;margin-bottom:40px;">Composite density visualization aggregating all mapped game events. Exposes the absolute primary arteries of player flow and match pacing.</p>', unsafe_allow_html=True)
 
-            if active_events:
-                leg_html = """
-                <div style="display:flex;justify-content:flex-end;margin-top:-60px;
-                            padding-right:30px;position:relative;z-index:10;">
-                    <div class="live-legend">
-                        <div class="legend-title">Live Map Legend</div>
-                """
-                for name, clr in active_events:
-                    leg_html += f'<div class="legend-item"><div class="legend-dot" style="background:{clr}"></div> {name}</div>\n'
-                leg_html += "</div></div>"
-                st.markdown(leg_html, unsafe_allow_html=True)
+                # Floating legend (now cleanly embedded underneath description)
+                active_events = []
+                if render_mode == "scatter" or render_mode == "High Traffic":
+                    if show_kills:  active_events.append(("Player Kills", "#FF3B30"))
+                    if show_deaths: active_events.append(("Fatalities",   "#4A90FF"))
+                    if show_loot:   active_events.append(("Elite Loot",   "#34C759"))
+                    if show_storm:  active_events.append(("Storm Death",  "#FFD400"))
+                elif render_mode == "Kill Zones":
+                    if show_kills:  active_events.append(("Player Kills", "#FF3B30"))
+                elif render_mode == "Death Zones":
+                    if show_deaths: active_events.append(("Fatalities",   "#4A90FF"))
+
+                if active_events:
+                    leg_html = """
+                    <div style="background:#0A0C14; border:1px solid #1E2235; border-radius:6px; padding:16px;">
+                        <div style="margin-bottom:16px; color:#FFFFFF; font-size:0.75rem; font-weight:800; letter-spacing:0.1em; text-transform:uppercase;">LIVE MAP LEGEND</div>
+                    """
+                    for name, clr in active_events:
+                        leg_html += f'<div style="display:flex; align-items:center; margin-bottom:12px; font-size:0.85rem; color:#8B8FA8; font-weight:600;"><div style="background:{clr}; width:12px; height:12px; border-radius:50%; margin-right:12px;"></div> {name}</div>\n'
+                    leg_html += "</div>"
+                    st.markdown(leg_html, unsafe_allow_html=True)
             
             # Timeline & Insights layout
             st.markdown('<hr style="border-color:#1E2235;margin:24px 0;">', unsafe_allow_html=True)
