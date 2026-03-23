@@ -70,6 +70,7 @@ def inject_css():
         font-weight: 900;
         letter-spacing: 0.05em;
         color: #FFFFFF;
+        margin-left: 40px; /* Room for sidebar toggle */
     }
     .navbar-logo span { color: #FF3B30; }
     .navbar-subtitle {
@@ -108,6 +109,14 @@ def inject_css():
     }
 
     /* ── SIDEBAR ── */
+    [data-testid="collapsedControl"] {
+        z-index: 999999 !important;
+        color: #FFFFFF !important;
+        background: #1E2235 !important;
+        border-radius: 8px !important;
+        top: 12px !important;
+        left: 12px !important;
+    }
     [data-testid="stSidebar"] {
         background-color: #0D0F1A !important;
         border-right: 1px solid #1E2235 !important;
