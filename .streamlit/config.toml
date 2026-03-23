@@ -1,3 +1,6 @@
-[server]
-showEmailPrompt = false
-
+[theme]
+base="dark"
+backgroundColor="#0A0C14"
+secondaryBackgroundColor="#1E2235"
+textColor="#FFFFFF"
+primaryColor="#FF3B30"

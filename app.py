@@ -258,23 +258,6 @@ def inject_css():
         color: #FFFFFF;
     }
 
-    /* ── EXPORT BUTTON ── */
-    .export-btn {
-        width: 100%;
-        padding: 12px;
-        background: #FF3B30;
-        color: #FFFFFF;
-        border: none;
-        border-radius: 4px;
-        font-size: 0.72rem;
-        font-weight: 800;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        cursor: pointer;
-        margin-top: 24px;
-        text-align: center;
-    }
-
     /* ── STAT CARDS ── */
     .stat-grid {
         display: grid;
@@ -751,8 +734,16 @@ def main():
                             label_visibility="collapsed")
 
         # Export button
-        st.markdown('<div class="export-btn">⬇ EXPORT INTELLIGENCE</div>',
-                    unsafe_allow_html=True)
+        st.markdown('<div style="margin-top:24px;"></div>', unsafe_allow_html=True)
+        csv_data = df_map.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="⬇ EXPORT CSV",
+            data=csv_data,
+            file_name=f"LILA_BLACK_{map_name}_Intelligence.csv",
+            mime="text/csv",
+            use_container_width=True,
+            type="primary"
+        )
 
     # ── STAT CARDS ───────────────────────────────────────────────────────
     df_f         = df_map.copy()
