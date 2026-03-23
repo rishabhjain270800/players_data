@@ -52,6 +52,9 @@ def inject_css():
         padding: 0 !important;
         max-width: 100% !important;
     }
+    div[data-testid="stTabs"] {
+        padding: 0 24px !important;
+    }
 
     /* ── TOP NAVBAR ── */
     .top-navbar {
@@ -782,7 +785,6 @@ def main():
     """, unsafe_allow_html=True)
 
     # ── TAB BAR & CONTENT ────────────────────────────────────────────────
-    st.markdown('<div style="padding:0 24px;">', unsafe_allow_html=True)
     
     # Define available tabs
     tab_opts = ["Events Overview", "Kill Zones", "Death Zones", "High Traffic"]
