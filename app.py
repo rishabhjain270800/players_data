@@ -697,8 +697,11 @@ def main():
         if dates:
             rng = st.date_input("", value=(dates[0], dates[-1]),
                                 label_visibility="collapsed")
-            s, e = (rng[0], rng[1]) if isinstance(rng, tuple) and len(rng)==2 \
-                   else (rng, rng)
+            if isinstance(rng, tuple):
+                s = rng[0] if len(rng) > 0 else dates[0]
+                e = rng[1] if len(rng) > 1 else s
+            else:
+                s, e = rng, rng
             df_map = df_map[df_map["date"].between(s, e)]
 
         # Match filter
