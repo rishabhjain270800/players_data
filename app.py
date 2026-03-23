@@ -647,16 +647,24 @@ def main():
         """, unsafe_allow_html=True)
 
         st.markdown('<div class="sb-label">📂 Data Source</div>', unsafe_allow_html=True)
-        uploaded = st.file_uploader("", type=["csv"], label_visibility="collapsed")
+        uploaded = st.file_uploader("", type=["csv", "xlsx"], label_visibility="collapsed")
         if uploaded:
             st.success(f"✅ {uploaded.name}")
 
     if uploaded:
-        df = pd.read_csv(uploaded, low_memory=False)
-    elif default_csv.exists():
-        df = pd.read_csv(default_csv, low_memory=False)
+        if uploaded.name.endswith('.csv'):
+            df = pd.read_csv(uploaded, low_memory=False)
+        else:
+            df = pd.read_excel(uploaded)
     else:
-        st.error("❌ No data found. Place `all_events.csv` next to `app.py` or upload one.")
+        st.markdown(
+            '<div style="text-align:center; margin-top:20vh;">'
+            '<h2 style="color:#FFFFFF; letter-spacing:0.1em; font-weight:800;">AWAITING INTELLIGENCE UPLOAD</h2>'
+            '<p style="color:#8B8FA8; font-size:1rem; margin-top:16px;">'
+            'Please upload a valid Match Events dataset (CSV or Excel) from the sidebar to initialize the Map Intelligence dashboard.'
+            '</p></div>', 
+            unsafe_allow_html=True
+        )
         st.stop()
 
     df = df.copy()
