@@ -866,6 +866,38 @@ def main():
             hide_index=True,
         )
 
+    # ── TIMELINE SLIDER (GLOBAL FOR TABS) ────────────────────────────────
+    timeline_sec_filter = None
+    if sel_mid:
+        df_tl = df_map.dropna(subset=["ts_dt"]).copy()
+        if not df_tl.empty:
+            t0 = df_tl["ts_dt"].min()
+            t1 = df_tl["ts_dt"].max()
+            total_secs = max(int((t1-t0).total_seconds()), 1)
+            
+            st.markdown("""
+            <div class="timeline-wrap">
+                <div class="timeline-head">⏱ Match Playback</div>
+                <div class="timeline-sub">Scroll to see match progression. Full duration: <b>{}</b></div>
+            </div>
+            """.format(fmt_s(total_secs)), unsafe_allow_html=True)
+
+            tl_col1, tl_col2 = st.columns([5, 1])
+            with tl_col1:
+                pct = st.slider("Timeline", 0, 100, value=100, step=1, label_visibility="collapsed", key="global_match_tl")
+            with tl_col2:
+                timeline_sec_filter = int(pct / 100 * total_secs)
+                st.markdown(f'<div style="padding-top:6px;color:#FF3B30;font-weight:700;font-size:1.1rem;">{fmt_s(timeline_sec_filter)}</div>', unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background:#0D0F1A;border:1px solid #1E2235;border-left:3px solid #FF3B30;
+                    border-radius:4px;padding:12px 16px;margin: 0 24px 20px 24px;">
+            <span style="color:#FF3B30;font-weight:700;font-size:0.75rem;">⏱ MATCH PLAYBACK</span>
+            <span style="color:#8B8FA8;font-size:0.75rem;margin-left:10px;">Select a specific match in the sidebar to enable temporal playback.</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+
     # ── TAB BAR & CONTENT ────────────────────────────────────────────────
     
     # Define available tabs
@@ -879,9 +911,15 @@ def main():
             # Determine logic mode corresponding to this tab
             render_mode = "scatter" if t == "Events Overview" else t
             
-            # Fetch data for this map
+            # Apply Timeline Filter if active
+            df_map_tab = df_map.copy()
+            if timeline_sec_filter is not None:
+                match_start = df_map["ts_dt"].min()
+                # Filter by elapsed seconds from start of match
+                df_map_tab = df_map[((df_map["ts_dt"] - match_start).dt.total_seconds()) <= timeline_sec_filter]
+            
             cfg   = MAP_CONFIGS[map_name]
-            df_px = _to_pixels(df_map, scale=cfg["scale"],
+            df_px = _to_pixels(df_map_tab, scale=cfg["scale"],
                                origin_x=cfg["origin_x"], origin_z=cfg["origin_z"])
             df_px = df_px[df_px["pixel_x"].between(0, IMG_SIZE) &
                           df_px["pixel_y"].between(0, IMG_SIZE)]
@@ -896,7 +934,7 @@ def main():
             map_col, desc_col = st.columns([7.5, 2.5])
             
             with map_col:
-                hash_key = f"{show_kills}_{show_deaths}_{show_loot}_{show_storm}_{track_player}_{p_filter}"
+                hash_key = f"{show_kills}_{show_deaths}_{show_loot}_{show_storm}_{track_player}_{p_filter}_{timeline_sec_filter}"
                 st.plotly_chart(fig, use_container_width=True, key=f"plot_{t}_{map_name}_{hash_key}")
             
             with desc_col:
@@ -934,43 +972,8 @@ def main():
                     leg_html += "</div>"
                     st.markdown(leg_html, unsafe_allow_html=True)
             
-            # Timeline & Insights layout
+            # Insights and visual tweaks
             st.markdown('<hr style="border-color:#1E2235;margin:24px 0;">', unsafe_allow_html=True)
-            
-            # Timeline
-            if sel_mid:
-                df_tl = df_map.dropna(subset=["ts_dt"]).copy()
-                if not df_tl.empty:
-                    t0 = df_tl["ts_dt"].min()
-                    t1 = df_tl["ts_dt"].max()
-                    total_secs = max(int((t1-t0).total_seconds()), 1)
-                    df_tl["match_sec"] = ((df_tl["ts_dt"]-t0).dt.total_seconds()).astype(int)
-
-                    if "tl_val" not in st.session_state:
-                         st.session_state["tl_val"] = 100
-
-                    st.markdown("""
-                    <div class="timeline-wrap">
-                        <div class="timeline-head">⏱ Match Playback</div>
-                        <div class="timeline-sub">Timeline specific to selected match.</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    tl1, tl2 = st.columns([5, 1])
-                    with tl1:
-                        pct = st.slider("", 0, 100, value=st.session_state["tl_val"], 
-                                        step=1, label_visibility="collapsed", key=f"slider_{t}")
-                    with tl2:
-                        cut = int(pct / 100 * total_secs)
-                        st.markdown(f'<div style="padding-top:6px;color:#FF3B30;font-weight:700;">{fmt_s(cut)} / {fmt_s(total_secs)}</div>', unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div style="background:#0D0F1A;border:1px solid #1E2235;border-left:3px solid #FF3B30;
-                            border-radius:4px;padding:10px 16px;margin-bottom:20px;">
-                    <span style="color:#FF3B30;font-weight:700;font-size:0.75rem;">⏱ MATCH PLAYBACK</span>
-                    <span style="color:#8B8FA8;font-size:0.75rem;margin-left:10px;">Select a specific match to enable playback.</span>
-                </div>
-                """, unsafe_allow_html=True)
 
             # Insights
             df_k = df_px[df_px["event"].isin(KILL_EVENTS)].copy()
@@ -987,7 +990,7 @@ def main():
             one_in  = round(all_deaths/storm_deaths) if storm_deaths else 0
             bk      = df_f[df_f["event"]=="BotKill"].shape[0]
             hk      = df_f[df_f["event"]=="Kill"].shape[0]
-            ratio   = f"{round(bk/hk,1)}:1 K/D RATIO" if hk else "N/A"
+            ratio   = f"{round(bk/hk,1)}:1 PvE/PvP RATIO" if hk else "N/A"
             r_ctx   = f"Bots are engaging players effectively on {MAP_CONFIGS[map_name]['display'].title()}."
 
             st.markdown(f"""
