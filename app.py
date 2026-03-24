@@ -436,12 +436,29 @@ def _parse_ts(df):
     if "ts" not in df.columns:
         return pd.Series([pd.NaT] * len(df), index=df.index)
     ts = df["ts"]
+    
     if pd.api.types.is_numeric_dtype(ts):
-        return pd.to_datetime(ts, unit="ms", errors="coerce")
-    coerced = pd.to_numeric(ts, errors="coerce")
-    if coerced.notna().mean() > 0.5:
-        return pd.to_datetime(coerced, unit="ms", errors="coerce")
-    return pd.to_datetime(ts, errors="coerce")
+        dt = pd.to_datetime(ts, unit="s", errors="coerce")
+    else:
+        # String parsing
+        coerced = pd.to_numeric(ts, errors="coerce")
+        if coerced.notna().mean() > 0.5:
+            dt = pd.to_datetime(coerced, unit="s", errors="coerce")
+        else:
+            # Explicit format allows mixed parsing natively
+            dt = pd.to_datetime(ts, errors="coerce", format="mixed")
+            
+    # CRITICAL CALIBRATION BUG-FIX:
+    # A known issue from the upstream Parquet string casting parses 1.77 billion SECONDS
+    # (equating to Feb 2026) incorrectly as MILLISECONDS since epoch.
+    # This crushes entirely match timelines of 15 minutes down into <1 second spans in 1970-01-21.
+    # We dynamically detect this compression and multiply elapsed 1970 seconds back to 2026 UNIX epoch strings.
+    is_1970 = dt.dt.year == 1970
+    if is_1970.any():
+        compressed_secs = (dt[is_1970] - pd.Timestamp("1970-01-01")).dt.total_seconds()
+        dt.loc[is_1970] = pd.to_datetime(compressed_secs * 1000, unit='s', errors='coerce')
+        
+    return dt
 
 
 def _is_human(s):
