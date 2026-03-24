@@ -86,6 +86,7 @@ def append_parquet_files_to_csv(
             f"No parquet files found under {input_root!r} matching pattern {pattern!r}."
         )
 
+    dfs = []
     for path in parquet_files:
         table = pq.read_table(path)
         df = table.to_pandas()
@@ -98,19 +99,28 @@ def append_parquet_files_to_csv(
             df['date'] = f"2026-02-{day}"
         else:
             df['date'] = "Unknown"
+            
+        dfs.append(df)
 
-        # Write header once, then append.
-        df.to_csv(
-            output_csv,
-            mode="w" if first else "a",
-            header=first,
-            index=False,
-            encoding="utf-8-sig",  # better default for Excel
-        )
-        first = False
-
-    if first:
+    if not dfs:
         raise RuntimeError("No files were processed; output CSV was not created.")
+        
+    final_df = pd.concat(dfs, ignore_index=True)
+    
+    # ── Strict Telemetry Deduplication & Ghost Purge ──
+    final_df = final_df.drop_duplicates(subset=["match_id", "event", "user_id", "ts"]).copy()
+    
+    # Identify matches with at least one human player
+    UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+    final_df["_is_human_tmp"] = final_df["user_id"].astype(str).map(lambda v: bool(UUID_RE.match(v)))
+    human_matches = final_df[final_df["_is_human_tmp"]]["match_id"].unique()
+    
+    # Filter global dataset to only valid human matches and clean temp column
+    final_df = final_df[final_df["match_id"].isin(human_matches)].copy()
+    final_df = final_df.drop(columns=["_is_human_tmp"])
+    
+    # Write the canonical deduplicated structure
+    final_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
 
 
 def main():
