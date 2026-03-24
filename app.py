@@ -53,7 +53,7 @@ def inject_css():
         max-width: 100% !important;
     }
     div[data-testid="stTabs"] {
-        padding: 0 24px !important;
+        padding: 0 24px 24px 24px !important;
     }
 
     /* ── TOP NAVBAR ── */
@@ -395,7 +395,7 @@ def inject_css():
         border: 1px solid #1E2235;
         border-radius: 4px;
         padding: 14px 18px;
-        margin-bottom: 12px;
+        margin: 0 24px 12px 24px;
     }
     .timeline-head {
         font-size: 0.65rem;
@@ -787,7 +787,6 @@ def main():
             data=csv_data,
             file_name=f"LILA_BLACK_{map_name}_Intelligence.csv",
             mime="text/csv",
-            width="stretch",
             type="primary"
         )
 
@@ -836,7 +835,7 @@ def main():
         <div class="stat-card">
             <div class="stat-label">Storm Kill Rate</div>
             <div class="stat-value">{storm_rate}%</div>
-            <div style="font-size:0.6rem;color:#6B7280;margin-top:4px;">{storm_deaths} KilledByStorm / {all_deaths} total deaths</div>
+            <div style="font-size:0.6rem;color:#6B7280;margin-top:4px;">{storm_deaths} Storm / {all_deaths} deaths</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -859,12 +858,15 @@ def main():
     event_counts = event_pivot.reset_index()
     event_counts.rename(columns={"event": "Event Type"}, inplace=True)
 
+    # ── EVENT BREAKDOWN ──
+    st.markdown('<div style="margin: 0 24px;">', unsafe_allow_html=True)
     with st.expander("📊 Event Breakdown", expanded=False):
         st.dataframe(
             event_counts,
             width="stretch",
             hide_index=True,
         )
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ── TIMELINE SLIDER (GLOBAL FOR TABS) ────────────────────────────────
     timeline_sec_filter = None
@@ -882,12 +884,41 @@ def main():
             </div>
             """.format(fmt_s(total_secs)), unsafe_allow_html=True)
 
-            tl_col1, tl_col2 = st.columns([5, 1])
+            # Playback controls logic with spacer columns for margin
+            if "playing" not in st.session_state: st.session_state.playing = False
+            if "play_pct" not in st.session_state: st.session_state.play_pct = 100
+
+            # 24px is roughly 0.15 columns on each side at this scale
+            sp1, tl_col1, tl_col2, tl_col3, sp2 = st.columns([0.15, 5, 0.8, 1, 0.15])
+            
+            with sp1: st.empty()
+            
             with tl_col1:
-                pct = st.slider("Timeline", 0, 100, value=100, step=1, label_visibility="collapsed", key="global_match_tl")
+                pct = st.slider("Timeline", 0, 100, value=st.session_state.play_pct, step=1, label_visibility="collapsed", key="global_match_tl_slider")
+                st.session_state.play_pct = pct
+            
             with tl_col2:
+                # Play/Pause button
+                play_label = "⏸ PAUSE" if st.session_state.playing else "▶ PLAY"
+                if st.button(play_label, use_container_width=True):
+                    st.session_state.playing = not st.session_state.playing
+                    st.rerun()
+            
+            with tl_col3:
                 timeline_sec_filter = int(pct / 100 * total_secs)
-                st.markdown(f'<div style="padding-top:6px;color:#FF3B30;font-weight:700;font-size:1.1rem;">{fmt_s(timeline_sec_filter)}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="padding-top:6px;color:#FF3B30;font-weight:700;font-size:1.1rem;text-align:right;">{fmt_s(timeline_sec_filter)}</div>', unsafe_allow_html=True)
+            
+            with sp2: st.empty()
+            
+            # Animation loop if playing
+            if st.session_state.playing:
+                if st.session_state.play_pct < 100:
+                    st.session_state.play_pct += 1
+                    time.sleep(0.01) # Slightly faster frame rate
+                    st.rerun()
+                else:
+                    st.session_state.playing = False
+                    st.rerun()
     else:
         st.markdown("""
         <div style="background:#0D0F1A;border:1px solid #1E2235;border-left:3px solid #FF3B30;
@@ -935,7 +966,7 @@ def main():
             
             with map_col:
                 hash_key = f"{show_kills}_{show_deaths}_{show_loot}_{show_storm}_{track_player}_{p_filter}_{timeline_sec_filter}"
-                st.plotly_chart(fig, use_container_width=True, key=f"plot_{t}_{map_name}_{hash_key}")
+                st.plotly_chart(fig, width="stretch", key=f"plot_{t}_{map_name}_{hash_key}")
             
             with desc_col:
                 # Contextual Description
