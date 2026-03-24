@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 from typing import Iterable, Optional
 
 import pandas as pd
@@ -89,6 +90,14 @@ def append_parquet_files_to_csv(
         table = pq.read_table(path)
         df = table.to_pandas()
         df = decode_event_column(df)
+
+        # Extract exact calendar date from folder structure
+        match = re.search(r'February_(\d+)', path)
+        if match:
+            day = match.group(1).zfill(2)
+            df['date'] = f"2026-02-{day}"
+        else:
+            df['date'] = "Unknown"
 
         # Write header once, then append.
         df.to_csv(

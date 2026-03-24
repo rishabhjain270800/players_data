@@ -75,7 +75,7 @@ players_data/
 If you want to rebuild `all_events.csv` from the raw parquet files:
 
 ```bash
-python parquet_to_excel_csv.py
+python parquet_to_excel_csv.py . all_events.csv
 ```
 
 This reads all parquet files from the daily folders, decodes the event column, detects human vs bot players, and outputs `all_events.csv`.

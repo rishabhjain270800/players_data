@@ -672,7 +672,10 @@ def main():
     df["event"]    = df["event"].astype(str)
     df["match_id"] = df["match_id"].astype(str)
     df["ts_dt"]    = _parse_ts(df)
-    df["date"]     = df["ts_dt"].dt.date
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"]).dt.date
+    else:
+        df["date"] = df["ts_dt"].dt.date
     df["is_human"] = _is_human(df["user_id"])
 
     # ── SIDEBAR FILTERS ──────────────────────────────────────────────────
