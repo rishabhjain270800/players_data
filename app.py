@@ -651,11 +651,27 @@ def main():
         if uploaded:
             st.success(f"✅ {uploaded.name}")
 
-    if uploaded:
-        if uploaded.name.endswith('.csv'):
-            df = pd.read_csv(uploaded, low_memory=False)
+    @st.cache_data(show_spinner="Decrypting Uploaded Intelligence...")
+    def _load_uploaded_file(file_buffer, filename):
+        if filename.endswith('.csv'):
+            return pd.read_csv(file_buffer, low_memory=False)
         else:
-            df = pd.read_excel(uploaded)
+            return pd.read_excel(file_buffer)
+
+    if uploaded:
+        try:
+            df = _load_uploaded_file(uploaded, uploaded.name)
+            
+            # Basic map integrity validation
+            req_cols = ["map_id", "event", "user_id"]
+            missing = [c for c in req_cols if c not in df.columns]
+            if missing:
+                st.error(f"❌ Uploaded file is missing required columns: {', '.join(missing)}")
+                st.markdown("Please ensure you are uploading the raw `all_events` dataset.")
+                st.stop()
+        except Exception as e:
+            st.error(f"❌ Failed to parse data. Ensure it is a valid CSV or XLSX file. Error: {str(e)}")
+            st.stop()
     else:
         st.markdown(
             '<div style="text-align:center; margin-top:20vh;">'
