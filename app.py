@@ -654,9 +654,20 @@ def main():
     @st.cache_data(show_spinner="Decrypting Uploaded Intelligence...")
     def _load_uploaded_file(file_buffer, filename):
         if filename.endswith('.csv'):
-            return pd.read_csv(file_buffer, low_memory=False)
+            res = pd.read_csv(file_buffer, low_memory=False)
         else:
-            return pd.read_excel(file_buffer)
+            res = pd.read_excel(file_buffer)
+            
+        # 1. Scrub redundant server telemetry duplicates
+        res = res.drop_duplicates(subset=["match_id", "event", "user_id", "ts"]).copy()
+        
+        # 2. Purge bot-only ghost matches (matches with exactly 0 humans)
+        res["_is_human"] = res["user_id"].astype(str).map(lambda v: bool(UUID_RE.match(v)))
+        human_matches = res[res["_is_human"]]["match_id"].unique()
+        res = res[res["match_id"].isin(human_matches)].copy()
+        res.drop(columns=["_is_human"], inplace=True)
+        
+        return res
 
     if uploaded:
         try:
@@ -776,7 +787,12 @@ def main():
         )
 
     # ── STAT CARDS ───────────────────────────────────────────────────────
-    df_f         = df_map.copy()
+    df_f = df_map.copy()
+    if p_filter == "Humans Only":
+        df_f = df_f[df_f["is_human"]]
+    elif p_filter == "Bots Only":
+        df_f = df_f[~df_f["is_human"]]
+
     tot_events   = len(df_f)
     tot_matches  = df_f["match_id"].nunique()
     tot_kills    = df_f[df_f["event"].isin(KILL_EVENTS)].shape[0]
