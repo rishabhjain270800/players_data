@@ -261,7 +261,7 @@ def inject_css():
     /* ── STAT CARDS ── */
     .stat-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         gap: 12px;
         margin: 16px 0;
     }
@@ -761,6 +761,7 @@ def main():
 
     # ── STAT CARDS ───────────────────────────────────────────────────────
     df_f         = df_map.copy()
+    tot_events   = len(df_f)
     tot_matches  = df_f["match_id"].nunique()
     tot_kills    = df_f[df_f["event"].isin(KILL_EVENTS)].shape[0]
     tot_deaths   = df_f[df_f["event"].isin(DEATH_EVENTS)].shape[0]
@@ -770,6 +771,10 @@ def main():
 
     st.markdown(f"""
     <div class="stat-grid" style="padding:16px 24px 0 24px;">
+        <div class="stat-card">
+            <div class="stat-label">Total Events</div>
+            <div class="stat-value">{tot_events:,}</div>
+        </div>
         <div class="stat-card">
             <div class="stat-label">Total Matches</div>
             <div class="stat-value">{tot_matches:,}</div>
