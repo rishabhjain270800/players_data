@@ -654,20 +654,9 @@ def main():
     @st.cache_data(show_spinner="Decrypting Uploaded Intelligence...")
     def _load_uploaded_file(file_buffer, filename):
         if filename.endswith('.csv'):
-            res = pd.read_csv(file_buffer, low_memory=False)
+            return pd.read_csv(file_buffer, low_memory=False)
         else:
-            res = pd.read_excel(file_buffer)
-            
-        # 1. Scrub redundant server telemetry duplicates
-        res = res.drop_duplicates(subset=["match_id", "event", "user_id", "ts"]).copy()
-        
-        # 2. Purge bot-only ghost matches (matches with exactly 0 humans)
-        res["_is_human"] = res["user_id"].astype(str).map(lambda v: bool(UUID_RE.match(v)))
-        human_matches = res[res["_is_human"]]["match_id"].unique()
-        res = res[res["match_id"].isin(human_matches)].copy()
-        res.drop(columns=["_is_human"], inplace=True)
-        
-        return res
+            return pd.read_excel(file_buffer)
 
     if uploaded:
         try:
