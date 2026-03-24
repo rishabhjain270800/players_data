@@ -731,10 +731,9 @@ def main():
                 s, e = rng, rng
             df_map = df_map[df_map["date"].between(s, e)]
 
-        # Match filter
         st.markdown('<div class="sb-label">Match Filter</div>', unsafe_allow_html=True)
         pcounts  = df_map.groupby("match_id")["user_id"].nunique().to_dict()
-        m_opts   = ["All Matches"] + [f"{m[:8]}... ({pcounts.get(m,0)} players)"
+        m_opts   = ["All Matches"] + [f"{m} ({pcounts.get(m,0)} players)"
                                        for m in sorted(pcounts)]
         m_ids    = [None] + sorted(pcounts)
         sel_mlbl = st.selectbox("Match Selection", m_opts, label_visibility="collapsed")
