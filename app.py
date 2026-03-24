@@ -654,20 +654,9 @@ def main():
     @st.cache_data(show_spinner="Decrypting Uploaded Intelligence...")
     def _load_uploaded_file(file_buffer, filename):
         if filename.endswith('.csv'):
-            loaded_df = pd.read_csv(file_buffer, low_memory=False)
+            return pd.read_csv(file_buffer, low_memory=False)
         else:
-            loaded_df = pd.read_excel(file_buffer)
-            
-        # Clean data to preserve true metric interrelations
-        loaded_df = loaded_df.drop_duplicates(subset=["match_id", "event", "user_id", "ts"]).copy()
-        
-        # Ghost purge: Drop matches completely if no humans were present
-        loaded_df["_is_human_tmp"] = loaded_df["user_id"].astype(str).map(lambda v: bool(UUID_RE.match(v)))
-        human_matches = loaded_df[loaded_df["_is_human_tmp"]]["match_id"].unique()
-        loaded_df = loaded_df[loaded_df["match_id"].isin(human_matches)].copy()
-        loaded_df = loaded_df.drop(columns=["_is_human_tmp"])
-            
-        return loaded_df
+            return pd.read_excel(file_buffer)
 
     if uploaded:
         try:
@@ -793,16 +782,16 @@ def main():
     elif p_filter == "Bots Only":
         df_f = df_f[~df_f["is_human"]]
 
-    # Ensure Stat Cards calculate off the unfiltered map data to preserve interrelated metrics
-    tot_events     = len(df_map)
-    tot_matches    = df_map["match_id"].nunique()
-    human_kills    = df_map[df_map["event"] == "Kill"].shape[0]
-    bot_kills      = df_map[df_map["event"] == "BotKill"].shape[0]
+    # Calculate key metrics globally on the active filter
+    tot_events     = len(df_f)
+    tot_matches    = df_f["match_id"].nunique()
+    human_kills    = df_f[df_f["event"] == "Kill"].shape[0]
+    bot_kills      = df_f[df_f["event"] == "BotKill"].shape[0]
     tot_kills      = human_kills + bot_kills
-    human_deaths   = df_map[df_map["event"] == "Killed"].shape[0]
-    bot_deaths     = df_map[df_map["event"] == "BotKilled"].shape[0]
+    human_deaths   = df_f[df_f["event"] == "Killed"].shape[0]
+    bot_deaths     = df_f[df_f["event"] == "BotKilled"].shape[0]
     tot_deaths     = human_deaths + bot_deaths
-    storm_deaths   = df_map[df_map["event"].isin(STORM_EVENTS)].shape[0]
+    storm_deaths   = df_f[df_f["event"].isin(STORM_EVENTS)].shape[0]
     all_deaths     = tot_deaths + storm_deaths
     storm_rate     = round(storm_deaths / all_deaths * 100, 1) if all_deaths else 0
 
@@ -836,81 +825,27 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
-    # ── CANONICAL CALCULATION LOGIC LOGIC & MATRIX (Dynamic for all maps) ────────────────
-    # STEP 2: Discover map names dynamically
-    unique_maps = sorted([m for m in df['map_id'].unique() if pd.notna(m) and str(m).strip() != ""])
+    # ── EVENT BREAKDOWN (raw canonical exact image formulation) ──────────
+    event_pivot = df.groupby(["event", "map_id"]).size().unstack(fill_value=0)
     
-    # Store results per map
-    all_map_results = {}
+    # Sort descending by AmbroseValley if present
+    if "AmbroseValley" in event_pivot.columns:
+        event_pivot = event_pivot.sort_values(by="AmbroseValley", ascending=False)
+    else:
+        event_pivot = event_pivot.sort_values(by=event_pivot.columns[0], ascending=False)
+        
+    event_pivot.loc["Total Events"] = event_pivot.sum(axis=0)
     
-    for m in unique_maps:
-        # STEP 3: Apply Map Filter
-        dm = df[df['map_id'] == m]
+    # Format with commas explicitly matching image visual
+    for col in event_pivot.columns:
+        event_pivot[col] = event_pivot[col].apply(lambda x: f"{x:,}")
         
-        # Calculate Metrics
-        m_tot_events = len(dm)
-        m_tot_matches = dm['match_id'].nunique()
-        m_tot_kills = int(dm[dm['event'].isin(KILL_EVENTS)].shape[0])
-        m_tot_deaths = int(dm[dm['event'].isin(DEATH_EVENTS)].shape[0])
-        m_storm_deaths = int(dm[dm['event'].isin(STORM_EVENTS)].shape[0])
-        m_all_deaths = m_tot_deaths + m_storm_deaths
-        m_storm_rate = round((m_storm_deaths / m_all_deaths) * 100, 1) if m_all_deaths > 0 else 0.0
-        
-        # STEP 9: Event Breakdown
-        m_event_counts = dm['event'].value_counts().to_dict()
-        
-        res_dict = {
-            "Total Events": m_tot_events,
-            "Total Matches": m_tot_matches,
-            "Total Kills": m_tot_kills,
-            "Total Deaths": m_tot_deaths,
-            "Storm Kill Rate": m_storm_rate
-        }
-        for k, v in m_event_counts.items():
-            res_dict[k] = v
-        all_map_results[m] = res_dict
-    
-    # STEP 10: Build Output Table
-    summary_metrics = ["Total Events", "Total Matches", "Total Kills", "Total Deaths", "Storm Kill Rate"]
-    event_types = set()
-    for m in unique_maps:
-        for k in all_map_results[m].keys():
-            if k not in summary_metrics:
-                event_types.add(k)
-                
-    all_rows = summary_metrics + sorted(list(event_types))
-    
-    out_table = pd.DataFrame(index=all_rows, columns=unique_maps).fillna(0)
-    for m in unique_maps:
-        for r in all_rows:
-            val = all_map_results[m].get(r, 0)
-            if r != "Storm Kill Rate":
-                out_table.loc[r, m] = int(val)
-            else:
-                out_table.loc[r, m] = float(val)
-                
-    # Format Storm Kill Rate with % sign
-    for m in unique_maps:
-        val = out_table.loc["Storm Kill Rate", m]
-        out_table.loc["Storm Kill Rate", m] = f"{val}%"
-        
-    # STEP 11: Totals Row
-    grand_total_events = 0
-    for m in unique_maps:
-        grand_total_events += int(out_table.loc["Total Events", m])
-        
-    out_table.loc["GRAND TOTAL (Events)"] = [0] * len(unique_maps)
-    for m in unique_maps:
-        out_table.loc["GRAND TOTAL (Events)", m] = grand_total_events
-        
-    # Reset index for Streamlit display
-    out_table_display = out_table.reset_index()
-    out_table_display.rename(columns={"index": "Metric / Event Type"}, inplace=True)
+    event_counts = event_pivot.reset_index()
+    event_counts.rename(columns={"event": "Event Type"}, inplace=True)
 
-    with st.expander("📊 Map Intelligence Table (Canonical Data)", expanded=False):
-        st.markdown("<p style='font-size:0.8rem; color:#8B8FA8;'>Below is the verified server-level metric breakdown computed across all match data without exclusions.</p>", unsafe_allow_html=True)
+    with st.expander("📊 Event Breakdown", expanded=False):
         st.dataframe(
-            out_table_display,
+            event_counts,
             width="stretch",
             hide_index=True,
         )
