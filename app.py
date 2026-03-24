@@ -793,35 +793,45 @@ def main():
     elif p_filter == "Bots Only":
         df_f = df_f[~df_f["is_human"]]
 
-    tot_events   = len(df_f)
-    tot_matches  = df_f["match_id"].nunique()
-    tot_kills    = df_f[df_f["event"].isin(KILL_EVENTS)].shape[0]
-    tot_deaths   = df_f[df_f["event"].isin(DEATH_EVENTS)].shape[0]
-    storm_deaths = df_f[df_f["event"].isin(STORM_EVENTS)].shape[0]
-    all_deaths   = tot_deaths + storm_deaths
-    storm_rate   = round(storm_deaths / all_deaths * 100, 1) if all_deaths else 0
+    tot_events     = len(df_f)
+    tot_matches    = df_f["match_id"].nunique()
+    human_kills    = df_f[df_f["event"] == "Kill"].shape[0]
+    bot_kills      = df_f[df_f["event"] == "BotKill"].shape[0]
+    tot_kills      = human_kills + bot_kills
+    human_deaths   = df_f[df_f["event"] == "Killed"].shape[0]
+    bot_deaths     = df_f[df_f["event"] == "BotKilled"].shape[0]
+    tot_deaths     = human_deaths + bot_deaths
+    storm_deaths   = df_f[df_f["event"].isin(STORM_EVENTS)].shape[0]
+    all_deaths     = tot_deaths + storm_deaths
+    storm_rate     = round(storm_deaths / all_deaths * 100, 1) if all_deaths else 0
+    human_players  = df_f[df_f["is_human"]]["user_id"].nunique()
 
     st.markdown(f"""
     <div class="stat-grid" style="padding:16px 24px 0 24px;">
         <div class="stat-card">
             <div class="stat-label">Total Events</div>
             <div class="stat-value">{tot_events:,}</div>
+            <div style="font-size:0.6rem;color:#6B7280;margin-top:4px;">across {tot_matches} matches</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Total Matches</div>
-            <div class="stat-value">{tot_matches:,}</div>
+            <div class="stat-label">Human Players</div>
+            <div class="stat-value">{human_players:,}</div>
+            <div style="font-size:0.6rem;color:#6B7280;margin-top:4px;">{tot_matches} matches</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Total Kills</div>
             <div class="stat-value">{tot_kills:,}</div>
+            <div style="font-size:0.6rem;color:#6B7280;margin-top:4px;">{human_kills} PvP &nbsp;·&nbsp; {bot_kills} vs bots</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Total Deaths</div>
             <div class="stat-value">{tot_deaths:,}</div>
+            <div style="font-size:0.6rem;color:#6B7280;margin-top:4px;">{human_deaths} PvP &nbsp;·&nbsp; {bot_deaths} by bots</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Storm Kill Rate</div>
             <div class="stat-value">{storm_rate}%</div>
+            <div style="font-size:0.6rem;color:#6B7280;margin-top:4px;">{storm_deaths} storm deaths</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
